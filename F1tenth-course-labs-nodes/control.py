@@ -4,14 +4,14 @@ import rospy
 from race.msg import pid_input
 from ackermann_msgs.msg import AckermannDrive
 from ackermann_msgs.msg import AckermannDriveStamped
-
+from dist_finder import desired_distance
 
 # PID Control Params
 global kp 
-kp = 2.0
+kp = 1.5
 #TODO
 global kd
-kd = 0.9
+kd = 0.5
 #TODO
 global ki
 ki = 1.0
@@ -28,7 +28,7 @@ global vel_input
 # 25: Slow and steady
 # 35: Nice Autonomous Pace
 # > 40: Careful, what you do here. Only use this if your autonomous steering is very reliable.
-vel_input = 1.0	#TODO
+vel_input = 5.0	#TODO
 
 # Publisher for moving the car. 
 # TODO: Use the coorect topic /car_x/offboard/command.
@@ -68,24 +68,21 @@ def control(data: pid_input):
 	if command.steering_angle > 100:
 		command.steering_angle = 100
 
+	if abs(command.steering_angle) > 0.5:
+		if data.pid_vel > 7.0:
+			command.steering_angle = 0
+
 	# TODO: Make sure the velocity is within bounds [0,100]
-	vel_given = (1 - (abs(data.pid_vel)/1.0))*vel_input
+	vel_given = vel_input
+	vel_given = (1 - (abs(data.pid_error)/(desired_distance+0.3)))*vel_input
 	command.speed = vel_given
-	command.steering_angle_velocity = 80.0
-	
 
 	# Move the car autonomously
 	main_command.drive = command
 	command_pub.publish(main_command)
 
 if __name__ == '__main__':
-	
-	#kp = input("Enter Kp Value: ")
-	#kd = input("Enter Kd Value: ")
-	#ki = input("Enter Ki Value: ")
-	#vel_input = input("Enter desired velocity: ")
 	rospy.init_node('pid_controller', anonymous=True)
 	print("PID Control Node is Listening to error")
 	rospy.Subscriber("/error", pid_input, control)
-	
 	rospy.spin()
