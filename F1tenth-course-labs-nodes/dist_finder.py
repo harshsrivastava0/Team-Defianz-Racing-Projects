@@ -7,8 +7,8 @@ from race.msg import pid_input
 
 # Some useful variable declarations.
 angle_range = 240	# Hokuyo 4LX has 240 degrees FoV for scan
-forward_projection = 0.9	# distance (in m) that we project the car forward for correcting the error. You have to adjust this.
-desired_distance = 0.9	# distance from the wall (in m). (defaults to right wall)
+forward_projection = 1.0	# distance (in m) that we project the car forward for correcting the error. You have to adjust this.
+desired_distance = 0.8	# distance from the wall (in m). (defaults to right wall)
 vel = 15 		# this vel variable is not really used here.
 error = 0.0		# initialize the error
 car_length = 0.50 # Traxxas Rally is 20 inches or 0.5 meters
@@ -33,6 +33,7 @@ def callback(data):
 	theta = 45 # you need to try different values for theta
 	a = getRange(data,theta) # obtain the ray distance for theta
 	b = getRange(data,0)	# obtain the ray distance for 0 degrees (i.e. directly to the right of the car)
+	c = getRange(data, 90)
 	swing = math.radians(theta)
 
 	## Your code goes here to determine the error as per the alrorithm 
@@ -42,13 +43,12 @@ def callback(data):
 	AB = b*math.cos(Alpha)
 	CD = AB + (forward_projection*math.sin(Alpha))
 	error = desired_distance - CD
-	current_error = desired_distance - AB
 
 
 	msg = pid_input()	# An empty msg is created of the type pid_input
 	# this is the error that you want to send to the PID for steering correction.
 	msg.pid_error = error	
-	msg.pid_vel = current_error	# velocity error can also be sent.
+	msg.pid_vel = c	# sending the distance from the front wall via pid_vel
 	
 	pub.publish(msg)
 
